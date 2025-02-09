@@ -1,5 +1,6 @@
 import os
 import nltk
+import argparse
 from nltk.corpus import stopwords
 from collections import Counter
 import re
@@ -47,7 +48,7 @@ def load_common_words_from_folder(folder_path):
     return common_words
 
 # Main function to find rare words
-def find_rare_words_from_txt(previous_rare_words_paths, output_rare_words_path):
+def find_rare_words_from_txt(previous_rare_words_paths, output_rare_words_path, percentage=100):
     folder_path = 'Extracted Texts'
     common_words_folder = 'Common Words'
     
@@ -70,6 +71,11 @@ def find_rare_words_from_txt(previous_rare_words_paths, output_rare_words_path):
     with open(txt_path, 'r', encoding='utf-8') as f:
         text = f.read()
     words = clean_and_tokenize(text)
+    
+    # Calculate the number of words to use based on the specified percentage
+    num_words_to_use = int(len(words) * (percentage / 100.0))
+    words = words[:num_words_to_use]
+    
     previous_rare_words = load_previous_rare_words(previous_rare_words_paths)
     common_words = load_common_words_from_folder(common_words_folder)
     filtered_words = [
@@ -87,6 +93,14 @@ def find_rare_words_from_txt(previous_rare_words_paths, output_rare_words_path):
     print(f"100 rarest words appended to {output_rare_words_path}")
 
 # Example usage
-previous_rare_words_paths = ['rarest_words.txt', 'unknown_words.txt', 'known_words.txt']
-output_rare_words_path = 'rarest_words.txt'
-find_rare_words_from_txt(previous_rare_words_paths, output_rare_words_path)
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser(description='Find rare words from text')
+    parser.add_argument('-p', '--percentage', type=int, default=100, help='Percentage of the text to use (default: 100)')
+    args = parser.parse_args()
+
+    if args.percentage <= 0 or args.percentage > 100:
+        print("Error: The percentage must be between 1 and 100.")
+    else:
+        previous_rare_words_paths = ['rarest_words.txt', 'unknown_words.txt', 'known_words.txt']
+        output_rare_words_path = 'rarest_words.txt'
+        find_rare_words_from_txt(previous_rare_words_paths, output_rare_words_path, args.percentage)
