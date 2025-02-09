@@ -2,6 +2,7 @@ import ebooklib
 from ebooklib import epub
 from bs4 import BeautifulSoup
 import re
+import os
 
 # Function to extract text from epub and clean it
 def extract_text_from_epub(epub_path, output_txt_path):
@@ -22,7 +23,19 @@ def extract_text_from_epub(epub_path, output_txt_path):
         f.write(text)
     print(f"Text extracted to {output_txt_path}")
 
-# Example usage
-epub_path = 'pg1342-images.epub'
-output_txt_path = 'extracted_text.txt'
+# Ensure the "Epub book Here" folder exists
+folder_path = 'Epub book Here'
+if not os.path.exists(folder_path):
+    os.makedirs(folder_path)
+
+# Check for multiple .epub files
+epub_files = [file for file in os.listdir(folder_path) if file.endswith('.epub')]
+if len(epub_files) != 1:
+    raise Exception("The folder must contain exactly one .epub file.")
+
+# Process the single .epub file
+epub_path = os.path.join(folder_path, epub_files[0])
+output_folder = 'Extracted Texts'
+os.makedirs(output_folder, exist_ok=True)
+output_txt_path = os.path.join(output_folder, f"{os.path.splitext(epub_files[0])[0]}.txt")
 extract_text_from_epub(epub_path, output_txt_path)
