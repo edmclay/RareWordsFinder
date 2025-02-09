@@ -4,13 +4,15 @@ import argparse
 from nltk.corpus import stopwords
 from collections import Counter
 import re
+import unicodedata
 
 # Ensure you have the 'punkt' and 'stopwords' resources for nltk
 nltk.download('punkt')
 nltk.download('stopwords')
 
-# Function to clean and tokenize text
+# Function to clean, normalize, and tokenize text
 def clean_and_tokenize(text):
+    text = unicodedata.normalize('NFKD', text).encode('ascii', 'ignore').decode('utf-8')  # Normalize text
     text = re.sub(r'\W+', ' ', text.lower())
     words = nltk.word_tokenize(text)
     return words
@@ -48,7 +50,7 @@ def load_common_words_from_folder(folder_path):
     return common_words
 
 # Main function to find rare words
-def find_rare_words_from_txt(previous_rare_words_paths, output_rare_words_path, percentage=100, begin_percentage=0):
+def find_rare_words_from_txt(previous_rare_words_paths, output_rare_words_path, percentage=100, begin_percentage=0, num_words=100):
     folder_path = 'Extracted Texts'
     common_words_folder = 'Common Words'
     
@@ -87,27 +89,34 @@ def find_rare_words_from_txt(previous_rare_words_paths, output_rare_words_path, 
         and word not in stopwords.words('english') and len(word) > 2 and not word.isdigit()
     ]
     word_freq = Counter(filtered_words)
-    rare_words = word_freq.most_common()[:-101:-1]  # Get 100 rarest words
+    rare_words = word_freq.most_common()[:-num_words-1:-1]  # Get the specified number of rarest words
 
-    # Append the list of rarest words to a txt file without overwriting it
-    with open(output_rare_words_path, 'a', encoding='utf-8') as f:
-        for word, freq in rare_words:
-            if word not in previous_rare_words:
+    new_words = [word for word, freq in rare_words if word not in previous_rare_words]
+
+    if not new_words:
+        print("Warning: No new rare words were found and appended.")
+    else:
+        # Append the list of rarest words to a txt file without overwriting it
+        with open(output_rare_words_path, 'a', encoding='utf-8') as f:
+            for word in new_words:
                 f.write(f"{word}\n")
-    print(f"100 rarest words appended to {output_rare_words_path}")
+        print(f"{len(new_words)} rarest words appended to {output_rare_words_path}")
 
 # Example usage
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Find rare words from text')
     parser.add_argument('-p', '--percentage', type=int, default=100, help='Percentage of the text to use (default: 100)')
     parser.add_argument('-b', '--begin_percentage', type=int, default=0, help='Percentage of the text to skip from the beginning (default: 0)')
+    parser.add_argument('-n', '--num_words', type=int, default=100, help='Number of rare words to find (default: 100)')
     args = parser.parse_args()
 
     if args.percentage <= 0 or args.percentage > 100:
         print("Error: The percentage must be between 1 and 100.")
     elif args.begin_percentage < 0 or args.begin_percentage >= args.percentage:
         print("Error: The begin percentage must be between 0 and the specified percentage.")
+    elif args.num_words <= 0:
+        print("Error: The number of rare words to find must be greater than 0.")
     else:
         previous_rare_words_paths = ['rarest_words.txt', 'unknown_words.txt', 'known_words.txt']
         output_rare_words_path = 'rarest_words.txt'
-        find_rare_words_from_txt(previous_rare_words_paths, output_rare_words_path, args.percentage, args.begin_percentage)
+        find_rare_words_from_txt(previous_rare_words_paths, output_rare_words_path, args.percentage, args.begin_percentage, args.num_words)
