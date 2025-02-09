@@ -48,7 +48,7 @@ def load_common_words_from_folder(folder_path):
     return common_words
 
 # Main function to find rare words
-def find_rare_words_from_txt(previous_rare_words_paths, output_rare_words_path, percentage=100):
+def find_rare_words_from_txt(previous_rare_words_paths, output_rare_words_path, percentage=100, begin_percentage=0):
     folder_path = 'Extracted Texts'
     common_words_folder = 'Common Words'
     
@@ -72,9 +72,13 @@ def find_rare_words_from_txt(previous_rare_words_paths, output_rare_words_path, 
         text = f.read()
     words = clean_and_tokenize(text)
     
-    # Calculate the number of words to use based on the specified percentage
-    num_words_to_use = int(len(words) * (percentage / 100.0))
-    words = words[:num_words_to_use]
+    # Calculate the starting and ending indices based on percentages
+    start_index = int(len(words) * (begin_percentage / 100.0))
+    end_index = int(len(words) * (percentage / 100.0))
+    
+    # Ensure the end index is within the length of the text
+    end_index = min(end_index, len(words))
+    words = words[start_index:end_index]
     
     previous_rare_words = load_previous_rare_words(previous_rare_words_paths)
     common_words = load_common_words_from_folder(common_words_folder)
@@ -96,11 +100,14 @@ def find_rare_words_from_txt(previous_rare_words_paths, output_rare_words_path, 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Find rare words from text')
     parser.add_argument('-p', '--percentage', type=int, default=100, help='Percentage of the text to use (default: 100)')
+    parser.add_argument('-b', '--begin_percentage', type=int, default=0, help='Percentage of the text to skip from the beginning (default: 0)')
     args = parser.parse_args()
 
     if args.percentage <= 0 or args.percentage > 100:
         print("Error: The percentage must be between 1 and 100.")
+    elif args.begin_percentage < 0 or args.begin_percentage >= args.percentage:
+        print("Error: The begin percentage must be between 0 and the specified percentage.")
     else:
         previous_rare_words_paths = ['rarest_words.txt', 'unknown_words.txt', 'known_words.txt']
         output_rare_words_path = 'rarest_words.txt'
-        find_rare_words_from_txt(previous_rare_words_paths, output_rare_words_path, args.percentage)
+        find_rare_words_from_txt(previous_rare_words_paths, output_rare_words_path, args.percentage, args.begin_percentage)
